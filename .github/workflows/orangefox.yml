@@ -1,0 +1,42 @@
+name: OrangeFox 编译 - K50至尊版 diting
+
+on:
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-22.04
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: 安装依赖
+        run: |
+          sudo apt update
+          sudo apt install -y git zip lz4 bison flex g++-multilib gcc-multilib python3 python3-pip
+          git lfs install
+
+      - name: 拉取 OrangeFox 源码
+        run: |
+          mkdir -p ~/ofrp
+          cd ~/ofrp
+          repo init --depth=1 -u https://gitlab.com/OrangeFox/Manifest.git -b fox_12.1
+          repo sync -c --no-clone-bundle --no-tags -j4
+
+      - name: 拉取设备树
+        run: |
+          cd ~/ofrp
+          git clone https://github.com/skkk1/android_device_xiaomi_diting.git -b twrp-12.1 device/xiaomi/diting
+          git clone https://github.com/skkk1/kernel_xiaomi_sm8475.git -b twrp kernel/xiaomi/sm8475
+
+      - name: 开始编译 OrangeFox
+        run: |
+          cd ~/ofrp
+          source build/envsetup.sh
+          lunch omni_diting-eng
+          mka recoveryimage -j$(nproc)
+
+      - name: 上传 OrangeFox
+        uses: actions/upload-artifact@v4
+        with:
+          name: OrangeFox-diting
+          path: /home/runner/ofrp/out/target/product/diting/recovery.img
