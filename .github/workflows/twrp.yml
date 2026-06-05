@@ -1,5 +1,4 @@
-name: 编译 TWRP for K50至尊版(diting)
-
+name: TWRP Build for diting (K50至尊版)
 on:
   workflow_dispatch:
 
@@ -7,37 +6,43 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - name: 初始化编译环境
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: 安装依赖
+      - name: Install full dependencies & repo
         run: |
           sudo apt update -y
           sudo apt install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 python3-pip
           git lfs install
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "PATH=~/bin:$PATH" >> $GITHUB_ENV
 
-      - name: 拉取 TWRP 源码
+      - name: Init TWRP source
         run: |
           mkdir -p ~/twrp
           cd ~/twrp
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
           repo init --depth=1 -u https://github.com/minimal-manifest-twrp/platform_manifest_twrp_aosp.git -b twrp-12.1
-          repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune -j$(nproc)
+          repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune -j4
 
-      - name: 拉取 diting 设备树 + 内核
+      - name: Clone device tree & kernel
         run: |
           cd ~/twrp
           git clone https://github.com/skkk1/android_device_xiaomi_diting.git -b twrp-12.1 device/xiaomi/diting
           git clone https://github.com/skkk1/kernel_xiaomi_sm8475.git -b twrp kernel/xiaomi/sm8475
 
-      - name: 开始编译 TWRP
+      - name: Build TWRP
         run: |
           cd ~/twrp
           source build/envsetup.sh
           lunch omni_diting-eng
           make recoveryimage -j$(nproc)
 
-      - name: 上传编译产物
+      - name: Upload TWRP
         uses: actions/upload-artifact@v4
         with:
-          name: twrp-diting
+          name: TWRP-diting
           path: /home/runner/twrp/out/target/product/diting/recovery.img
