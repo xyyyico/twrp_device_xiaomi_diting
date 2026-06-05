@@ -1,4 +1,4 @@
-name: OrangeFox - 构建 K50至尊版 diting
+name: OrangeFox - 构建
 
 # Credits to:
 # https://github.com/TeamWin
@@ -18,12 +18,14 @@ on:
         default: '12.1'
         type: choice
         options:
+        - 14.1
         - 12.1
         - 11.0
+        - 10.0
       DEVICE_TREE:
         description: 'OrangeFox设备树'
         required: true
-        default: 'https://github.com/skkk1/android_device_xiaomi_diting.git'
+        default: 'https://github.com/xyyyico/android_device_xiaomi_diting.git'
       DEVICE_TREE_BRANCH:
         description: 'OrangeFox设备树分支'
         required: true
@@ -43,6 +45,7 @@ on:
         type: choice
         options:
         - recovery
+        - boot
       DN:
         description: '设备名称'
         required: true
@@ -85,7 +88,7 @@ jobs:
         sudo bash setup/android_build_env.sh
       
     - name: 🏙️ 初始化清单
-      if: inputs.MANIFEST_BRANCH == '11.0' || inputs.MANIFEST_BRANCH == '12.1'
+      if: inputs.MANIFEST_BRANCH == '11.0' || inputs.MANIFEST_BRANCH == '12.1' || inputs.MANIFEST_BRANCH == '14.1'
       run: |
         mkdir -p ${GITHUB_WORKSPACE}/OrangeFox
         cd ${GITHUB_WORKSPACE}/OrangeFox
@@ -109,9 +112,8 @@ jobs:
         source build/envsetup.sh
         export ALLOW_MISSING_DEPENDENCIES=true
         export FOX_BUILD_TYPE=Official
-        export TARGET_DEVICE_DIR=${{ inputs.DEVICE_PATH }}
         set -e
-        lunch omni_${{ inputs.DEVICE_NAME }}-eng && mka ${{ inputs.BUILD_TARGET }}image
+        lunch twrp_${{ inputs.DEVICE_NAME }}-eng && mka ${{ inputs.BUILD_TARGET }}image
 
     - name: 💿 整理镜像
       run: |
