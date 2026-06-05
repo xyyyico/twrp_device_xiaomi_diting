@@ -1,5 +1,4 @@
-name: OrangeFox 编译 - K50至尊版 diting
-
+name: OrangeFox Build for diting (K50至尊版)
 on:
   workflow_dispatch:
 
@@ -7,35 +6,42 @@ jobs:
   build:
     runs-on: ubuntu-22.04
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout
+        uses: actions/checkout@v4
 
-      - name: 安装依赖
+      - name: Install full dependencies & repo
         run: |
-          sudo apt update
-          sudo apt install -y git zip lz4 bison flex g++-multilib gcc-multilib python3 python3-pip
+          sudo apt update -y
+          sudo apt install -y bc bison build-essential ccache curl flex g++-multilib gcc-multilib git git-lfs gnupg gperf imagemagick lib32ncurses5-dev lib32readline-dev lib32z1-dev liblz4-tool libncurses5 libncurses5-dev libsdl1.2-dev libssl-dev libxml2 libxml2-utils lzop pngcrush rsync schedtool squashfs-tools xsltproc zip zlib1g-dev python3 python3-pip
           git lfs install
+          mkdir -p ~/bin
+          curl https://storage.googleapis.com/git-repo-downloads/repo > ~/bin/repo
+          chmod a+x ~/bin/repo
+          echo "PATH=~/bin:$PATH" >> $GITHUB_ENV
 
-      - name: 拉取 OrangeFox 源码
+      - name: Init OrangeFox source
         run: |
           mkdir -p ~/ofrp
           cd ~/ofrp
+          git config --global user.name "GitHub Actions"
+          git config --global user.email "actions@github.com"
           repo init --depth=1 -u https://gitlab.com/OrangeFox/Manifest.git -b fox_12.1
-          repo sync -c --no-clone-bundle --no-tags -j4
+          repo sync -c --no-clone-bundle --no-tags --optimized-fetch --prune -j4
 
-      - name: 拉取设备树
+      - name: Clone device tree & kernel
         run: |
           cd ~/ofrp
           git clone https://github.com/skkk1/android_device_xiaomi_diting.git -b twrp-12.1 device/xiaomi/diting
           git clone https://github.com/skkk1/kernel_xiaomi_sm8475.git -b twrp kernel/xiaomi/sm8475
 
-      - name: 开始编译 OrangeFox
+      - name: Build OrangeFox
         run: |
           cd ~/ofrp
           source build/envsetup.sh
           lunch omni_diting-eng
           mka recoveryimage -j$(nproc)
 
-      - name: 上传 OrangeFox
+      - name: Upload OrangeFox
         uses: actions/upload-artifact@v4
         with:
           name: OrangeFox-diting
